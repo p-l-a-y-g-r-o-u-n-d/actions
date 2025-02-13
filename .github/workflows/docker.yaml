@@ -1,0 +1,41 @@
+name: docker
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: "image name"
+        required: true
+        type: string
+      registry-url:
+        description: "registry url"
+        required: true
+        type: string
+      registry-organization:
+        description: "registry organization"
+        required: true
+        type: string
+      registry-token:
+        description: "registry token"
+        required: true
+        type: string
+
+jobs: 
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: build and push
+        run: |
+          TIMESTAMP=$(date +"%Y-%m-%d-%H-%M-%S")
+          REGISTRY_IMAGE="${{ inputs.registry-url }}/${{ inputs.registry-organization }}/${{ inputs.image-name }}"
+
+          docker login -u ${{ github.actor }} -p ${{ inputs.registry-token }} ${{ inputs.registry-url }}
+          docker build --build-arg BUILD_VERSION=${{github.run_number}} --build-arg BUILD_TIMESTAMP=${TIMESTAMP} -t ${{ inputs.image-name }} .
+          docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:latest
+          docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${{ github.sha }}
+          docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${{github.run_number}}
+          docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${TIMESTAMP}
+          docker push ${REGISTRY_IMAGE}:latest
+          docker push ${REGISTRY_IMAGE}:${{ github.sha }}
+          docker push ${REGISTRY_IMAGE}:${{ github.run_number }}
+          docker push ${REGISTRY_IMAGE}:${TIMESTAMP}

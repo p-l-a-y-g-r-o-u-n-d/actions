@@ -15,10 +15,6 @@ on:
         description: "registry organization"
         required: true
         type: string
-      registry-token:
-        description: "registry token"
-        required: true
-        type: string
 
 jobs: 
   build:
@@ -31,7 +27,7 @@ jobs:
           TIMESTAMP=$(date +"%Y-%m-%d-%H-%M-%S")
           REGISTRY_IMAGE="${{ inputs.registry-url }}/${{ inputs.registry-organization }}/${{ inputs.image-name }}"
 
-          docker login -u ${{ github.actor }} -p ${{ inputs.registry-token }} ${{ inputs.registry-url }}
+          docker login -u ${{ github.actor }} -p ${{ secrets.GHCR_TOKEN }} ${{ inputs.registry-url }}
           docker build --build-arg BUILD_VERSION=${{github.run_number}} --build-arg BUILD_TIMESTAMP=${TIMESTAMP} -t ${{ inputs.image-name }} .
           docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:latest
           docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${{ github.sha }}

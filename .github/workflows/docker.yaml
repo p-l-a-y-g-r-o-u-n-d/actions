@@ -43,3 +43,25 @@ jobs:
           docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${TIMESTAMP}
 
           docker push --all-tags ${REGISTRY_IMAGE}
+
+  notify:
+    name: Notify about new image version
+    runs-on: ubuntu-latest
+    needs: [docker]
+
+    steps:
+      - name: Transform input variables
+        id: transform
+        env:
+          IMAGE_NAME: ${{ inputs.image-name }}
+        run: |
+          # Replace and lower case
+          rpl=$(echo ${IMAGE_NAME//-/_} | tr '[:upper:]' '[:lower:'])
+          echo "APPLICATION_NAME=$rpl" >> "$GITHUB_OUTPUT"
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.FLUX_REPO_TRIGGER_IMAGE_UPDATE }}
+          repository: p-l-a-y-g-r-o-u-n-d/flux-testing
+          event-type: image-version-update
+          client-payload: '{"application_name": "${{ steps.transform.outputs.APPLICATION_NAME }}", "image_name": "${{ inputs.registry-url }}/${{ inputs.registry-organization }}/${{ inputs.image-name }}", "image_version": "${{ github.run_number }}", "user": "${{ github.actor }}"}'

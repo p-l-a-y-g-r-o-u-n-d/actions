@@ -4,41 +4,42 @@ on:
   workflow_call:
     inputs:
       image-name:
-        description: "image name"
+        description: "Image name"
         required: true
         type: string
       registry-url:
-        description: "registry url"
+        description: "Registry URL"
         required: true
         type: string
       registry-organization:
-        description: "registry organization"
+        description: "Organization or namespace within given registry"
         required: true
         type: string
       dockerfile:
-        description: 'docker file location'
+        description: 'Dockerfile location'
         default: './Dockerfile'
         required: false
         type: string
+
 jobs: 
-  build:
+  docker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: build and push
+      - name: Build and push
         run: |
           TIMESTAMP=$(date +"%Y-%m-%d-%H-%M-%S")
           REGISTRY_IMAGE="${{ inputs.registry-url }}/${{ inputs.registry-organization }}/${{ inputs.image-name }}"
 
           docker login -u ${{ github.actor }} -p ${{ secrets.GHCR_TOKEN }} ${{ inputs.registry-url }}
+
           echo "Using Dockerfile: ${{ inputs.dockerfile }}"
           docker build --build-arg BUILD_VERSION=${{github.run_number}} --build-arg BUILD_TIMESTAMP=${TIMESTAMP} -t ${{ inputs.image-name }} -f ${{ inputs.dockerfile }} .
+
           docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:latest
           docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${{ github.sha }}
-          docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${{github.run_number}}
+          docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${{ github.run_number }}
           docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${TIMESTAMP}
-          docker push ${REGISTRY_IMAGE}:latest
-          docker push ${REGISTRY_IMAGE}:${{ github.sha }}
-          docker push ${REGISTRY_IMAGE}:${{ github.run_number }}
-          docker push ${REGISTRY_IMAGE}:${TIMESTAMP}
+
+          docker push --all-tags ${REGISTRY_IMAGE}

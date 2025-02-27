@@ -15,7 +15,11 @@ on:
         description: "registry organization"
         required: true
         type: string
-
+      dockerfile:
+        description: 'docker file location'
+        default: './Dockerfile'
+        required: false
+        type: string
 jobs: 
   build:
     runs-on: ubuntu-latest
@@ -28,7 +32,8 @@ jobs:
           REGISTRY_IMAGE="${{ inputs.registry-url }}/${{ inputs.registry-organization }}/${{ inputs.image-name }}"
 
           docker login -u ${{ github.actor }} -p ${{ secrets.GHCR_TOKEN }} ${{ inputs.registry-url }}
-          docker build --build-arg BUILD_VERSION=${{github.run_number}} --build-arg BUILD_TIMESTAMP=${TIMESTAMP} -t ${{ inputs.image-name }} .
+          echo "Using Dockerfile: ${{ inputs.dockerfile }}"
+          docker build --build-arg BUILD_VERSION=${{github.run_number}} --build-arg BUILD_TIMESTAMP=${TIMESTAMP} -t ${{ inputs.image-name }} -f ${{ inputs.dockerfile }} .
           docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:latest
           docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${{ github.sha }}
           docker tag ${{ inputs.image-name }} ${REGISTRY_IMAGE}:${{github.run_number}}
